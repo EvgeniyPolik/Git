@@ -7,6 +7,7 @@
 extern "C" {
 #include <modbus.h> 
 }
+uint8_t inputRegisters[8];
 
 using std::cout;
 using std::cin;
@@ -49,16 +50,38 @@ bool ExecuteCommand(string command, modbus_t* controller) {
     return resSwitchOn == 1 && resSwitchOff == 1;
 }
 
+int ReadInputRegisters(modbus_t* controller) { // Discrite input registers read method
+    int queryResult = 0;
+    queryResult = modbus_read_input_bits(controller, 0, 8, inputRegisters);
+    if (queryResult == -1) {
+        fprintf(stderr, "Filed read status from modbus server %s\n", modbus_strerror(errno));
+        return -1;
+    }
+    return queryResult;
+}
+
+void PrintStatusRegisters(int lengthAnswer) {
+    for (int i = 0; i < lengthAnswer; i++)
+        cout << (int)inputRegisters[i] << " ";
+    cout << std::endl;
+}
+
 void Welcome(modbus_t* controller) {
+    
     string userInp = "";
     while (true) {
-        cout << "Input comand:\n" << "1) Open water\n" << "2) Close wate\nr" << "Any comand to exit\n" << std::endl;
+        cout << "Input comand:\n" << "1) Open water\n" << "2) Close water\n" << "3) Get input status\n" << "Any comand to exit\n" << std::endl;
         cin >> userInp;
         if (userInp == "1" || userInp == "2")
             if (ExecuteCommand(userInp, controller))
                 cout << "Succes";
             else
                 cout << "Warning! command don't work";
+        else if (userInp == "3") {
+            int queryResult = ReadInputRegisters(controller);
+            if (queryResult != -1)
+                PrintStatusRegisters(queryResult);
+        }
         else
             break;
     }
